@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    </head>
+    <body>
+        <div>
+          <input type="text" id="name"/>
+          <input type="submit" value="Get results" id="get"/>
+        </div>
+        <svg id="complete" width="1000" height="500"></svg>
+        <svg id="last_50" width="1000" height="250"></svg>
+        <br>
+        <a style="color:red">NBC TF-IDF</a>
+        <br>
+        <a style="color:blue">NBC</a>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+        <script type="text/javascript">
+          var server = 'http://127.0.0.1:5000/';
+          
+          var dataset1 = [];
+          var dataset2 = [];
+
+          //dataset1 = JSON.parse("[[1, 4, 1, 1], [2, 4, 1, 1], [3, 4, 1, 1], [4, 4, 1, 1], [5, 4, 1, 1], [6, 6, 1, 1], [7, 6, 1, 1], [8, 13, 7, 7], [9, 23, 17, 16], [10, 30, 20, 19], [11, 33, 22, 21], [12, 33, 22, 21], [13, 33, 22, 21], [14, 41, 29, 28], [15, 51, 39, 38], [16, 61, 48, 47], [17, 71, 54, 53], [18, 81, 57, 56], [19, 90, 63, 62], [20, 100, 70, 69], [21, 110, 74, 70], [22, 120, 83, 77], [23, 130, 87, 82], [24, 140, 91, 86], [25, 150, 99, 94], [26, 160, 103, 98], [27, 170, 110, 104], [28, 180, 114, 108], [29, 189, 117, 112], [30, 199, 126, 121], [31, 209, 132, 127], [32, 219, 141, 135], [33, 228, 147, 141], [34, 237, 150, 146], [35, 247, 158, 153], [36, 256, 164, 157], [37, 261, 166, 159], [38, 266, 169, 161], [39, 272, 173, 165], [40, 275, 176, 168], [41, 281, 178, 170], [42, 288, 185, 177], [43, 298, 191, 183], [44, 308, 198, 190], [45, 314, 201, 193], [46, 322, 205, 197], [47, 329, 207, 199], [48, 337, 214, 206], [49, 345, 218, 210], [50, 355, 223, 216], [51, 364, 229, 221], [52, 373, 237, 229], [53, 383, 242, 236], [54, 391, 246, 240], [55, 399, 253, 246], [56, 409, 262, 254], [57, 419, 268, 258], [58, 429, 278, 268], [59, 437, 284, 274], [60, 447, 291, 281], [61, 457, 299, 289], [62, 466, 305, 296], [63, 476, 311, 300], [64, 486, 318, 305], [65, 495, 327, 309], [66, 502, 334, 314], [67, 511, 340, 319], [68, 520, 346, 325], [69, 529, 354, 333], [70, 537, 361, 341], [71, 547, 369, 349], [72, 556, 376, 356], [73, 566, 382, 362], [74, 576, 391, 370], [75, 586, 399, 376], [76, 596, 408, 384], [77, 606, 417, 394], [78, 615, 426, 401], [79, 624, 435, 409], [80, 634, 444, 418], [81, 644, 453, 428], [82, 652, 459, 433]]");
+
+          $("#get").click(function() {
+            var username = $("#name").val();
+            $.post(server+"get_results", {'username':username}, function(d) {
+                dataset1 = JSON.parse(d);
+                console.log(dataset1);
+                generateDataset2();
+                drawGraph1();
+                //drawGraph2();
+            });
+          });
+
+          function generateDataset2() {
+            var j = 1;
+            //var start = dataset1.length - 10;
+            var start = 1;
+            var v1 = dataset1[start-1][1];
+            var v2 = dataset1[start-1][2];
+            var v3 = dataset1[start-1][3];
+
+            for (var i = start; i < dataset1.length; i++) {
+              dataset2.push([j, dataset1[i][1] - v1, dataset1[i][2] - v2, dataset1[i][3] - v3 ]);
+            }
+            //console.log(dataset1);
+          }
+
+          function yScale(value) { return 4*value; }
+          function xScale(value) { return 30 + 4*value; }
+
+          function drawGraph1() {
+            var svg = d3.select("#complete");
+            var yLabelData = ["00", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+            
+            var yLabels = svg.selectAll("yLabels")
+                            .data(yLabelData)
+                            .enter()
+                            .append("text");
+
+            yLabels.text(function(d) {
+              return d;
+            })
+            .attr("x", 0)
+            .attr("y", function(d,i) {
+              return 10*yScale(yLabelData.length - i);
+            });
+
+            svg.append("path")
+              .attr("d", "M 30 440 L 1030 440")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 400 L 1030 400")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 360 L 1030 360")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 320 L 1030 320")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 280 L 1030 280")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 240 L 1030 240")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 200 L 1030 200")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 160 L 1030 160")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 120 L 1030 120")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 80 L 1030 80")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 40 L 1030 40")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 30 440 L 30 0")
+              .attr("stroke", "rgba(0,0,0,0.25)")
+              .attr("stroke-width", 1);
+
+            var graph_w = d3.svg.line()
+                          .x(function(d,i) { return xScale(d[1]); })
+                          .y(function(d) { return 440 - yScale((d[2]/d[1])*100); })
+                          .interpolate("monotone");
+            var graph_c = d3.svg.line()
+                          .x(function(d,i) { return xScale(d[1]); })
+                          .y(function(d) { return 440 - yScale((d[3]/d[1])*100); })
+                          .interpolate("monotone");
+
+            svg.append("path")
+              .attr("d", graph_w(dataset1))
+              .attr("stroke", "red")
+              .attr("fill", "none");
+
+            svg.append("path")
+              .attr("d", graph_c(dataset1))
+              .attr("stroke", "blue")
+              .attr("fill", "none");
+          }
+
+          function drawGraph2() {
+            var svg = d3.select("#last_50");
+            var yLabelData = ["00", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+            
+            var yLabels = svg.selectAll("yLabels")
+                            .data(yLabelData)
+                            .enter()
+                            .append("text");
+
+            yLabels.text(function(d) {
+              return d;
+            })
+            .attr("x", 0)
+            .attr("y", function(d,i) {
+              return 10*yScale(yLabelData.length - i);
+            });
+
+            svg.append("path")
+              .attr("d", "M 20 220 L 1000 220")
+              .attr("stroke", "black")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 200 L 1000 200")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 180 L 1000 180")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 160 L 1000 160")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 140 L 1000 140")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 120 L 1000 120")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 100 L 1000 100")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 80 L 1000 80")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 60 L 1000 60")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 40 L 1000 40")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 20 L 1000 20")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            svg.append("path")
+              .attr("d", "M 20 220 L 20 0")
+              .attr("stroke", "grey")
+              .attr("stroke-width", 1);
+
+            var graph_w = d3.svg.line()
+                          .x(function(d,i) { return 20*xScale(i); })
+                          .y(function(d) { return 220 - yScale((d[2]/d[1])*100)})
+                          .interpolate("monotone");
+
+            var graph_c = d3.svg.line()
+                          .x(function(d,i) { return 20*xScale(i); })
+                          .y(function(d) { return 220 - yScale((d[3]/d[1])*100)})
+                          .interpolate("monotone");
+
+            svg.append("path")
+              .attr("d", graph_w(dataset2))
+              .attr("stroke", "red")
+              .attr("fill", "none");
+
+            svg.append("path")
+              .attr("d", graph_c(dataset2))
+              .attr("stroke", "blue")
+              .attr("fill", "none");
+          }
+        </script>
+    </body>
+</html>
